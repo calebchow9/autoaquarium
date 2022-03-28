@@ -1,4 +1,5 @@
-import { React, useState } from "react";
+import { React, useEffect, useState } from "react";
+import axios from "axios";
 
 // Material UI
 import { makeStyles } from "@mui/styles";
@@ -13,11 +14,30 @@ import { Chart, registerables } from "chart.js";
 Chart.register(...registerables);
 
 function App() {
-  const [profile, setProfile] = useState();
+  const [selectedProfile, setSelectedProfile] = useState("");
+  const [profiles, setProfiles] = useState([]);
 
-  const handleProfile = (event) => {
-    setProfile(event.target.value);
+  const handleSelectedProfile = (event) => {
+    setSelectedProfile(event.target.value);
+
+    // update chart high/lows
   };
+
+  useEffect(() => {
+    getProfiles();
+  }, []);
+
+  const getProfiles = () => {
+    axios.get('http://localhost:4000/profile').then((res) => {
+      setProfiles(res.data);
+    })
+  }
+
+  const getProfile = (id) => {
+    
+  }
+
+  console.log(selectedProfile)
 
   const dates = ["Jan", "Feb", "Mar"];
 
@@ -86,13 +106,13 @@ function App() {
           <Select
             labelId="profile-select-label"
             id="profile-select"
-            value={profile}
+            value={selectedProfile}
             label="Profile"
-            onChange={handleProfile}
+            onChange={handleSelectedProfile}
           >
-            <MenuItem value={10}>Ten</MenuItem>
-            <MenuItem value={20}>Twenty</MenuItem>
-            <MenuItem value={30}>Thirty</MenuItem>
+            {profiles && profiles.map((profile) => {
+              return <MenuItem value={profile._id} key={profile._id}>{profile.name}</MenuItem>
+            })}
           </Select>
         </div>
         <Button variant="contained">Edit</Button>
