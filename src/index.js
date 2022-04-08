@@ -4,6 +4,7 @@ import { Routes, Route, BrowserRouter as Router } from "react-router-dom";
 import "./index.css";
 import App from "./pages/App";
 import Edit from "./pages/Edit";
+import Create from "./pages/Create";
 import reportWebVitals from "./reportWebVitals";
 
 ReactDOM.render(
@@ -12,6 +13,7 @@ ReactDOM.render(
       <Routes>
         <Route path="/" exact element={<App />} />
         <Route path="/edit" exact element={<Edit />} />
+        <Route path="/create" exact element={<Create />} />
       </Routes>
     </Router>
   </React.StrictMode>,
