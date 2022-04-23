@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from "react";
+import { React, useEffect, useState, useReducer } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
@@ -16,7 +16,7 @@ Chart.register(...registerables);
 
 function App() {
   // variables
-  const apiURL = "http://localhost:4000";
+  const apiURL = "http://auto-aquarium.herokuapp.com";
 
   // hooks
   const [selectedProfile, setSelectedProfile] = useState("");
@@ -25,6 +25,7 @@ function App() {
   const [pHs, setpHs] = useState([]);
   const [conds, setConds] = useState([]);
   const [times, setTimes] = useState([]);
+  const [notif, setNotif] = useState("");
 
   // constraints
   const [tempLow, setTempLow] = useState(null);
@@ -33,6 +34,12 @@ function App() {
   const [pHHigh, setpHHigh] = useState(null);
   const [condLow, setCondLow] = useState(null);
   const [condHigh, setCondHigh] = useState(null);
+
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+
+  function force() {
+    forceUpdate();
+  }
 
   const handleSelectedProfile = (event) => {
     setSelectedProfile(event.target.value);
@@ -44,12 +51,54 @@ function App() {
   useEffect(() => {
     getProfiles();
     getData();
+    const interval = setInterval(() => {
+      window.location.reload(false);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const getProfiles = () => {
     axios.get(`${apiURL}/profile`).then((res) => {
       setProfiles(res.data);
     });
+
+    // set spinner to current profile
+    axios.get(`${apiURL}/profile/current`).then((res) => {
+      getProfile(res.data._id);
+    });
+  };
+
+  const sendNotifications = (data) => {
+    let tempBool = false;
+    let phBool = false;
+    let condBool = false;
+
+    temps.forEach((temp) => {
+      if (temp < data.tempLow || temp > data.tempHigh) {
+        tempBool = true;
+      }
+    });
+    pHs.forEach((pH) => {
+      if (pH < data.phLow || pH > data.phHigh) {
+        phBool = true;
+      }
+    });
+    conds.forEach((cond) => {
+      if (cond < data.condLow || cond > data.condHigh) {
+        condBool = true;
+      }
+    });
+
+    if (tempBool || phBool || condBool) {
+      let notifString = "⚠️";
+      notifString += tempBool ? "Temperature, " : "";
+      notifString += phBool ? "pH, " : "";
+      notifString += condBool
+        ? "Conductivity are in dangerous conditions."
+        : "are in dangerous conditions.";
+      setNotif(notifString);
+    }
   };
 
   const getData = () => {
@@ -75,6 +124,12 @@ function App() {
       setpHHigh(res.data.phHigh);
       setCondLow(res.data.condLow);
       setCondHigh(res.data.condHigh);
+
+      sendNotifications(res.data);
+
+      axios.put(`${apiURL}/profile/current`, res.data).then((res) => {
+        console.log(res);
+      });
     });
   };
 
@@ -103,14 +158,14 @@ function App() {
       },
       {
         label: "Min",
-        data: Array(3).fill(tempLow),
+        data: Array(10).fill(tempLow),
         fill: false,
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
       },
       {
         label: "Max",
-        data: Array(3).fill(tempHigh),
+        data: Array(10).fill(tempHigh),
         fill: "-1",
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
@@ -132,14 +187,14 @@ function App() {
       },
       {
         label: "Min",
-        data: Array(3).fill(pHLow),
+        data: Array(10).fill(pHLow),
         fill: false,
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
       },
       {
         label: "Max",
-        data: Array(3).fill(pHHigh),
+        data: Array(10).fill(pHHigh),
         fill: "-1",
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
@@ -151,7 +206,7 @@ function App() {
     labels: times ? [...times] : null,
     datasets: [
       {
-        label: "pH",
+        label: "Conductivity",
         data: conds ? [...conds] : null,
         borderColor: ["#b4a7d6"],
         backgroundColor: ["#ff577f45"],
@@ -161,14 +216,14 @@ function App() {
       },
       {
         label: "Min",
-        data: Array(3).fill(condLow),
+        data: Array(10).fill(condLow),
         fill: false,
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
       },
       {
         label: "Max",
-        data: Array(3).fill(condHigh),
+        data: Array(10).fill(condHigh),
         fill: "-1",
         backgroundColor: "#90EE90",
         borderColor: "#DDDDDD",
@@ -186,8 +241,9 @@ function App() {
       alignItems: "center",
     },
     charts: {
-      marginLeft: "15%",
-      marginRight: "15%",
+      alignItems: "center",
+      justifyContent: "center",
+      display: "flex",
     },
   });
 
@@ -218,28 +274,53 @@ function App() {
               })}
           </Select>
         </div>
-        <Link style={{ textDecoration: "none" }} to="/create">
-          <Button style={{ height: "50px" }} variant="contained">
-            +
-          </Button>
-        </Link>
       </div>
+      <h2>Alerts</h2>
+      <p>
+        {notif
+          ? notif
+          : "Alerts will appear here when conditions are outside of tolerance ranges."}
+      </p>
 
       <div className={classes.charts}>
-        <div>
+        <div style={{ width: "33%" }}>
           <h2>Temperature (°C)</h2>
           <Line data={tempData} options={options} />
         </div>
 
-        <div>
+        <div style={{ width: "33%" }}>
           <h2>pH</h2>
           <Line data={pHData} options={options} />
         </div>
 
-        <div>
+        <div style={{ width: "33%" }}>
           <h2>Conductivity</h2>
           <Line data={condData} options={options} />
         </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          right: 0,
+          bottom: 0,
+          marginBottom: "50px",
+          marginRight: "50px",
+        }}
+      >
+        <Link style={{ textDecoration: "none" }} to="/create">
+          <Button
+            style={{
+              height: "75px",
+              width: "75px",
+              borderRadius: "50%",
+              fontSize: "30px",
+            }}
+            variant="contained"
+          >
+            +
+          </Button>
+        </Link>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import axios from "axios";
 
 function Create() {
   let navigate = useNavigate();
-  const apiURL = "http://localhost:4000";
+  const apiURL = "http://auto-aquarium.herokuapp.com";
 
   const [name, setName] = useState("");
   const [temps, setTemps] = useState([20, 30]);
